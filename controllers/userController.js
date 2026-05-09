@@ -139,47 +139,64 @@ export async function getCurrentUser(request, response){
 }
 
 
-export async function updateProfile(request, response){
+export async function updateProfile(request, response) {
+  const { email, name, password } = request.body;
 
-    const { email, name } = request.body;
-     
-    if (!name || !email || !validator.isEmail(email)){
-        return response.status(404).send({
-            success: false,
-            message: "Valid email and name are required"
-        })
+  if (!name || !email || !validator.isEmail(email)) {
+    return response.status(400).json({
+      success: false,
+      message: "Valid email and name are required",
+    });
+  }
+
+  try {
+    // check if email already exists for another user
+    const isExist = await User.findOne({
+      email,
+      _id: { $ne: request.user.id },
+    });
+
+    if (isExist) {
+      return response.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
     }
 
+    // build update object dynamically
+    const updateData = {
+      name,
+      email,
+    };
 
-    try {
-        const isExist = await User.findOne({ email, _id: {$ne: request.user.id}})
-
-        if (isExist){
-            return response.status(409).json({
-                success: false,
-                message: "Email already exist"
-            })
-        }
-
-        const user = await User.findByIdAndUpdate(
-            request.user.id,
-            { name, email },
-            {new: true, runValidators: true, select: 'name email'}
-        )
-
-        response.json({
-            success: true,
-            user
-        })
-    } catch (error) {
-        console.log("Error in update ", error);
-        response.status(500).json({
-            success: false,
-            message: "Update failed"
-        })
+    // 🔐 optional password update
+    if (password && password.trim().length > 0) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
     }
+
+    const user = await User.findByIdAndUpdate(
+      request.user.id,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+        select: "name email",
+      }
+    );
+
+    return response.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.log("Error in update", error);
+    return response.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
+  }
 }
-
 
 export async function updatePassword(request, response){
     const { currentPassword, newPassword } = request.body;

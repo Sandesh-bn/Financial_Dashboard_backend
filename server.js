@@ -11,6 +11,29 @@ import dashboarRouter from './routes/dashboardRoute.js';
 const app = express();
 const port = 4000;
 
+
+// cors resolution
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 // middleware
 app.use(cors());
 app.use(express.json());

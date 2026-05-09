@@ -16,6 +16,7 @@ const port = 4000;
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  process.env.LOCAL_URL
 ];
 
 app.use(
